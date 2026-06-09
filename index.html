@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Master Ledger & Stock</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10b981">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Poppins:wght@300;400;600;700&display=swap');
+
+        :root {
+            --font-en: 'Poppins', sans-serif;
+            --font-ur: 'Noto Nastaliq Urdu', serif;
+        }
+        body { font-family: var(--font-en); transition: background 0.3s, color 0.3s; }
+        .urdu-text { font-family: var(--font-ur); line-height: 2.5; }
+
+        [data-theme="dark"] { background-color: #0f172a; color: #f8fafc; }
+        [data-theme="light"] { background-color: #f1f5f9; color: #0f172a; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <header class="border-b border-slate-700/50 p-4 sticky top-0 backdrop-blur-md z-50 bg-opacity-80 bg-slate-900 data-[theme=light]:bg-white">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wide text-emerald-500 flex items-center gap-2">
+                🏢 <span class="lang-en">Property Master System</span><span class="lang-ur hidden">پراپرٹی ماسٹر سسٹم</span>
+            </h1>
+
+            <div class="flex items-center gap-3">
+                <button id="btn-install" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5">
+                    <i class="fas fa-download"></i> <span class="lang-en">Install</span><span class="lang-ur hidden">انسٹال</span>
+                </button>
+                <button id="btn-lang" class="bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700">اردو</button>
+                <button id="btn-theme" class="bg-slate-800 text-yellow-400 p-2 rounded-lg border border-slate-700"><i class="fas fa-sun"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <section class="max-w-6xl mx-auto px-4 pt-6">
+        <div class="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700 max-w-md">
+            <button id="tab-deals" onclick="switchMainTab('deals')" class="flex-1 text-center py-2 text-sm font-bold rounded-lg bg-emerald-600 text-white transition-all">
+                🤝 <span class="lang-en">Client Deals</span><span class="lang-ur hidden">کلائنٹ ڈیلز</span>
+            </button>
+            <button id="tab-stock" onclick="switchMainTab('stock')" class="flex-1 text-center py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">
+                📦 <span class="lang-en">Property Stock</span><span class="lang-ur hidden">پراپرٹی انوینٹری</span>
+            </button>
+        </div>
+    </section>
+
+    <main class="max-w-6xl mx-auto p-4 space-y-6">
+
+        <section class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/60 flex flex-wrap gap-4 justify-between items-center">
+            <div>
+                <h3 class="font-semibold text-sm text-slate-400 lang-en">Database Ledger Controls (LocalStorage File Vault)</h3>
+                <h3 class="font-semibold text-sm text-slate-400 lang-ur hidden">ڈیٹا بیس رجسٹر کنٹرولز (محفوظ بیک اپ)</h3>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="exportData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
+                    <i class="fas fa-file-export"></i> <span class="lang-en">Backup Master File</span><span class="lang-ur hidden">بیک اپ فائل بنائیں</span>
+                </button>
+                <label class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 cursor-pointer">
+                    <i class="fas fa-file-import"></i> <span class="lang-en">Import Backup</span><span class="lang-ur hidden">بیک اپ لوڈ کریں</span>
+                    <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)">
+                </label>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div class="bg-slate-800/90 p-5 rounded-2xl border border-slate-700 shadow-xl h-fit">
+
+                <div id="form-deals-container" class="">
+                    <h2 class="text-lg font-bold text-emerald-400 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+                        <i class="fas fa-plus-circle"></i> <span class="lang-en">New Deal Registration</span><span class="lang-ur hidden">نئی کلائنٹ ڈیل درج کریں</span>
+                    </h2>
+                    <form id="deal-form" onsubmit="saveDeal(event)" class="space-y-4 text-slate-200">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1 lang-en">Customer Name</label>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">کسٹمر کا نام</label>
+                            <input type="text" id="cust-name" required class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1 lang-en">Phone Number</label>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">فون نمبر</label>
+                            <input type="tel" id="cust-phone" required class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Deal Type</label>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">ڈیل کی قسم</label>
+                                <select id="deal-type" class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none">
+                                    <option value="Sale">Sale / فروخت</option>
+                                    <option value="Purchase">Purchase / خریداری</option>
+                                    <option value="Rent">Rent / کرایہ</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Workflow Status</label>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">حالت (اسٹیٹس)</label>
+                                <select id="deal-status" onchange="toggleFormFields()" class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none">
+                                    <option value="Pending">Pending / پینڈنگ</option>
+                                    <option value="Token Paid">Token Paid / بیعانہ موصول</option>
+                                    <option value="In-Progress">In-Progress / جاری ہے</option>
+                                    <option value="Completed">Completed / مکمل</option>
+                                    <option value="Cancelled">Cancelled / منسوخ</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Area Size</label>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">رقبہ</label>
+                                <input type="number" step="any" id="area-size" required class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Unit</label>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">یونٹ</label>
+                                <select id="area-unit" class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none">
+                                    <option value="Marla">Marla / مرلہ</option>
+                                    <option value="Kanal">Kanal / کنال</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-emerald-400 mb-1 lang-en">📍 Sector / Society / Area</label>
+                            <label class="block text-xs font-semibold text-emerald-400 mb-1 lang-ur hidden">📍 سیکٹر / سوسائٹی / ایریا</label>
+                            <input type="text" id="deal-sector" placeholder="e.g. PHA, DHA" required class="w-full bg-slate-900/80 border border-emerald-600/50 rounded-lg p-2 text-sm focus:border-emerald-400 outline-none">
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Total Price (PKR)</label>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">کل قیمت</label>
+                                <input type="number" id="total-price" value="0" min="0" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Token (Biyana)</label>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">بیعانہ رقم</label>
+                                <input type="number" id="token-paid" value="0" min="0" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+                        <div id="reminder-container" class="space-y-2 bg-amber-950/20 p-3 rounded-xl border border-amber-500/30">
+                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-en">⏰ Set Target Chrono Alert</label>
+                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-ur hidden">⏰ الرٹ کا وقت سیٹ کریں</label>
+                            <input type="datetime-local" id="reminder-date" class="w-full bg-slate-900 border border-amber-600/70 rounded-lg p-2 text-sm outline-none text-amber-300">
+                        </div>
+                        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700 space-y-2">
+                            <span class="block text-[11px] font-bold text-emerald-400"><i class="fas fa-paperclip"></i> Media Attachment Linker</span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="file" id="plot-image" accept="image/*" class="w-full text-xs text-slate-400 file:bg-slate-700 file:text-white file:px-2 file:py-1 file:border-0 file:rounded">
+                                <input type="file" id="plot-video" accept="video/*" class="w-full text-xs text-slate-400 file:bg-slate-700 file:text-white file:px-2 file:py-1 file:border-0 file:rounded">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Deal Description / Specs</label>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">پلاٹ نمبر اور تفصیلات</label>
+                            <textarea id="deal-details" rows="2" required class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-sm transition-all">
+                            <span class="lang-en">Save Client Record</span><span class="lang-ur hidden">کلائنٹ ریکارڈ محفوظ کریں</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div id="form-stock-container" class="hidden">
+                    <h2 class="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2">
+                        <i class="fas fa-warehouse"></i> <span class="lang-en">Add Property Stock</span><span class="lang-ur hidden">دکان/پلاٹ انوینٹری درج کریں</span>
+                    </h2>
+                    <form id="stock-form" onsubmit="saveStockItem(event)" class="space-y-4 text-slate-200">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Property Title / Plot Code</label>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1 lang-ur hidden">پلاٹ کوڈ / عنوان</label>
+                            <input type="text" id="stk-title" placeholder="e.g. Corner Plot 142" required class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Inventory Type</label>
+                                <select id="stk-type" class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                                    <option value="Plot">Plot / پلاٹ</option>
+                                    <option value="House">House / مکان</option>
+                                    <option value="Commercial">Commercial / کمرشل</option>
+                                    <option value="File">File / فائل</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Purpose</label>
+                                <select id="stk-purpose" class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                                    <option value="For Sale">For Sale / برائے فروخت</option>
+                                    <option value="For Rent">For Rent / برائے کرایہ</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Area Size</label>
+                                <input type="number" step="any" id="stk-size" required class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Unit</label>
+                                <select id="stk-unit" class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                                    <option value="Marla">Marla / مرلہ</option>
+                                    <option value="Kanal">Kanal / کنال</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-blue-400 mb-1 lang-en">📍 Sector / Block / Project</label>
+                            <input type="text" id="stk-sector" placeholder="e.g. PHA Phase 1, G-10" required class="w-full bg-slate-900/80 border border-blue-600/50 rounded-lg p-2 text-sm focus:border-blue-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Demand Price (PKR)</label>
+                            <input type="number" id="stk-price" required class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/80 space-y-2">
+                            <span class="block text-[11px] font-bold text-blue-400"><i class="fas fa-user-shield"></i> Owner / Primary Source Contact</span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="stk-owner" placeholder="Owner Name" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-1.5 text-xs outline-none">
+                                <input type="tel" id="stk-phone" placeholder="Owner Phone" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-1.5 text-xs outline-none">
+                            </div>
+                        </div>
+                        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700 space-y-2">
+                            <span class="block text-[11px] font-bold text-blue-400"><i class="fas fa-camera"></i> Stock Image Media Vault</span>
+                            <input type="file" id="stk-image" accept="image/*" class="w-full text-xs text-slate-400 file:bg-slate-700 file:text-white file:px-2 file:py-1 file:border-0 file:rounded">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1 lang-en">Internal Notes / Spec Sheet</label>
+                            <textarea id="stk-details" rows="2" placeholder="Demarcation details, category etc..." class="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm transition-all">
+                            <span class="lang-en">Insert into Stock Registry</span><span class="lang-ur hidden">اسٹاک رجسٹر میں محفوظ کریں</span>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+
+            <div class="lg:grid-cols-1 lg:col-span-2 space-y-4">
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 text-center">
+                        <div class="text-xs text-slate-400 lang-en" id="lbl-card-1">Total Client Ledgers</div>
+                        <div class="text-xs text-slate-400 lang-ur hidden" id="lbl-card-1-ur">کل کلائنٹ ڈیلز</div>
+                        <span id="count-total" class="text-xl font-bold text-blue-400">0</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 text-center">
+                        <div class="text-xs text-slate-400 lang-en" id="lbl-card-2">Completed Closed</div>
+                        <div class="text-xs text-slate-400 lang-ur hidden" id="lbl-card-2-ur">مکمل شدہ</div>
+                        <span id="count-done" class="text-xl font-bold text-emerald-400">0</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 text-center">
+                        <div class="text-xs text-slate-400 lang-en" id="lbl-card-3">Active Pipeline</div>
+                        <div class="text-xs text-slate-400 lang-ur hidden" id="lbl-card-3-ur">پینڈنگ ایکشنز</div>
+                        <span id="count-pending" class="text-xl font-bold text-amber-500">0</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/90 p-4 rounded-2xl border border-slate-700 shadow-xl">
+                    <div class="flex justify-between items-center mb-4 gap-2">
+                        <h3 id="workspace-title" class="text-md font-bold text-slate-300 min-w-[150px]">🤝 Active Client Ledger</h3>
+                        <input type="text" id="search-box" oninput="renderMasterView()" placeholder="Live global system search core..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500 w-full max-w-md">
+                    </div>
+
+                    <div id="ledger-container" class="space-y-3 max-h-[650px] overflow-y-auto pr-1"></div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Dual Channel LocalStorage Arrays
+        let deals = JSON.parse(localStorage.getItem('property_ledger_data')) || [];
+        let stock = JSON.parse(localStorage.getItem('property_inventory_data')) || [];
+        let firedAlerts = JSON.parse(localStorage.getItem('property_ledger_fired')) || [];
+
+        let currentActiveTab = 'deals'; // Active state configuration selector
+        let currentLang = 'en';
+        let deferredPrompt;
+        let mediaCacheMap = new Map(); // Core runtime RAM linker cache
+
+        const alertAudio = new Audio('./ALARM ALERT.mp3');
+        alertAudio.loop = false;
+
+        function unlockAudioEngine() {
+            alertAudio.play().then(() => {
+                alertAudio.pause();
+                alertAudio.currentTime = 0;
+                document.removeEventListener('click', unlockAudioEngine);
+                document.removeEventListener('touchstart', unlockAudioEngine);
+            }).catch(e => console.log("Audio pipeline priming skipped."));
+        }
+        document.addEventListener('click', unlockAudioEngine);
+        document.addEventListener('touchstart', unlockAudioEngine);
+
+        function playCustomAlarm() {
+            try {
+                alertAudio.currentTime = 0;
+                alertAudio.play().catch(e => console.error("Playback restriction matrix triggered:", e));
+            } catch(err) { console.warn("Audio driver pipeline fatal error:", err); }
+        }
+
+        function syncDataVault() {
+            localStorage.setItem('property_ledger_data', JSON.stringify(deals));
+            localStorage.setItem('property_inventory_data', JSON.stringify(stock));
+            localStorage.setItem('property_ledger_fired', JSON.stringify(firedAlerts));
+            renderMasterView();
+        }
+
+        function switchMainTab(targetTab) {
+            currentActiveTab = targetTab;
+            const btnDeals = document.getElementById('tab-deals');
+            const btnStock = document.getElementById('tab-stock');
+            const formDeals = document.getElementById('form-deals-container');
+            const formStock = document.getElementById('form-stock-container');
+            const title = document.getElementById('workspace-title');
+            const searchBox = document.getElementById('search-box');
+
+            searchBox.value = '';
+
+            if (targetTab === 'deals') {
+                btnDeals.className = "flex-1 text-center py-2 text-sm font-bold rounded-lg bg-emerald-600 text-white transition-all";
+                btnStock.className = "flex-1 text-center py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+                formDeals.classList.remove('hidden');
+                formStock.classList.add('hidden');
+                title.innerHTML = currentLang === 'en' ? "🤝 Active Client Ledger" : "🤝 کلائنٹ ڈیلز رجسٹر";
+                searchBox.placeholder = "Search Customer Name, Phone, Sector (PHA)...";
+            } else {
+                btnStock.className = "flex-1 text-center py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition-all";
+                btnDeals.className = "flex-1 text-center py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+                formStock.classList.remove('hidden');
+                formDeals.classList.add('hidden');
+                title.innerHTML = currentLang === 'en' ? "📦 Property Stock Inventory" : "📦 انوینٹری دستیاب اسٹاک";
+                searchBox.placeholder = "Search Plot Code, Sector, Demand Price, Type...";
+            }
+            renderMasterView();
+        }
+
+        function saveDeal(e) {
+            e.preventDefault();
+            let now = new Date();
+            let autoTime = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
+            let customAlertRaw = document.getElementById('reminder-date').value;
+            let customAlertFormatted = null;
+
+            if (customAlertRaw) {
+                let d = new Date(customAlertRaw);
+                if(!isNaN(d.getTime())) {
+                    customAlertFormatted = d.toLocaleDateString('en-GB') + ' @ ' + d.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
+                } else { customAlertRaw = null; }
+            }
+
+            let totalPrice = parseFloat(document.getElementById('total-price').value) || 0;
+            let tokenPaid = parseFloat(document.getElementById('token-paid').value) || 0;
+            const dealId = Date.now();
+
+            const imgField = document.getElementById('plot-image').files[0];
+            const vidField = document.getElementById('plot-video').files[0];
+            if (imgField) mediaCacheMap.set(`${dealId}_img`, imgField);
+            if (vidField) mediaCacheMap.set(`${dealId}_vid`, vidField);
+
+            const deal = {
+                id: dealId,
+                name: document.getElementById('cust-name').value.trim(),
+                phone: document.getElementById('cust-phone').value.trim(),
+                type: document.getElementById('deal-type').value,
+                status: document.getElementById('deal-status').value,
+                size: document.getElementById('area-size').value,
+                unit: document.getElementById('area-unit').value,
+                sector: document.getElementById('deal-sector').value.trim(),
+                totalPrice: totalPrice,
+                tokenPaid: tokenPaid,
+                remaining: totalPrice - tokenPaid,
+                enteredAt: autoTime,
+                reminderRaw: customAlertRaw || null,
+                reminderDate: customAlertFormatted,
+                hasImage: !!imgField,
+                hasVideo: !!vidField,
+                details: document.getElementById('deal-details').value,
+                timestamp: new Date().toLocaleDateString('en-GB')
+            };
+
+            deals.unshift(deal);
+            syncDataVault();
+            document.getElementById('deal-form').reset();
+            toggleFormFields();
+        }
+
+        // Production Inventory Matrix Engine Loader
+        function saveStockItem(e) {
+            e.preventDefault();
+            const stockId = Date.now();
+            const imgField = document.getElementById('stk-image').files[0];
+
+            const item = {
+                id: stockId,
+                title: document.getElementById('stk-title').value.trim(),
+                type: document.getElementById('stk-type').value,
+                purpose: document.getElementById('stk-purpose').value,
+                size: document.getElementById('stk-size').value,
+                unit: document.getElementById('stk-unit').value,
+                sector: document.getElementById('stk-sector').value.trim(),
+                price: parseFloat(document.getElementById('stk-price').value) || 0,
+                owner: document.getElementById('stk-owner').value.trim() || 'N/A',
+                phone: document.getElementById('stk-phone').value.trim() || 'N/A',
+                details: document.getElementById('stk-details').value || '',
+                timestamp: new Date().toLocaleDateString('en-GB'),
+                base64Img: ""
+            };
+
+            // Permanent File System Processing Layer via Base64 Converter
+            if (imgField) {
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    item.base64Img = reader.result;
+                    stock.unshift(item);
+                    syncDataVault();
+                    document.getElementById('stock-form').reset();
+                };
+                reader.readAsDataURL(imgField);
+            } else {
+                stock.unshift(item);
+                syncDataVault();
+                document.getElementById('stock-form').reset();
+            }
+        }
+
+        function deleteMasterRecord(id, type) {
+            if (confirm("Are you sure you want to permanently delete this registry file node?")) {
+                if (type === 'deal') {
+                    deals = deals.filter(d => d.id !== id);
+                    firedAlerts = firedAlerts.filter(fid => fid !== id.toString());
+                    mediaCacheMap.delete(`${id}_img`);
+                    mediaCacheMap.delete(`${id}_vid`);
+                } else {
+                    stock = stock.filter(s => s.id !== id);
+                }
+                syncDataVault();
+            }
+        }
+
+        function toggleFormFields() {
+            const status = document.getElementById('deal-status').value;
+            const container = document.getElementById('reminder-container');
+            if (status === 'Completed' || status === 'Cancelled') {
+                container.classList.add('hidden');
+                document.getElementById('reminder-date').value = '';
+            } else { container.classList.remove('hidden'); }
+        }
+
+        function setExternalSearchQuery(query) {
+            document.getElementById('search-box').value = query;
+            renderMasterView();
+        }
+
+        function renderMasterView() {
+            const container = document.getElementById('ledger-container');
+            const searchVal = document.getElementById('search-box').value.toLowerCase();
+            container.innerHTML = '';
+
+            // Layout Labels Sync Array
+            if (currentActiveTab === 'deals') {
+                document.getElementById('lbl-card-1').innerText = "Total Client Ledgers";
+                document.getElementById('lbl-card-2').innerText = "Completed Closed";
+                document.getElementById('lbl-card-3').innerText = "Active Pipeline";
+
+                let total = 0, done = 0, pending = 0;
+                deals.forEach(deal => {
+                    total++;
+                    if (deal.status === 'Completed') done++;
+                    if (['Pending', 'Token Paid', 'In-Progress'].includes(deal.status)) pending++;
+
+                    if (deal.name.toLowerCase().includes(searchVal) || deal.phone.includes(searchVal) || (deal.sector && deal.sector.toLowerCase().includes(searchVal)) || deal.totalPrice.toString().includes(searchVal)) {
+                        let cardStyle = 'bg-blue-500/10 border-blue-500/40';
+                        let badgeStyle = 'bg-blue-600 text-white';
+                        if(deal.status==='Completed') { cardStyle='bg-emerald-500/10 border-emerald-500/40'; badgeStyle='bg-emerald-600 text-white'; }
+                        if(deal.status==='Token Paid') { cardStyle='bg-purple-500/10 border-purple-500/40'; badgeStyle='bg-purple-600 text-white'; }
+                        if(deal.status==='In-Progress') { cardStyle='bg-orange-500/10 border-orange-500/40'; badgeStyle='bg-orange-600 text-white'; }
+                        if(deal.status==='Cancelled') { cardStyle='bg-rose-500/10 border-rose-500/40'; badgeStyle='bg-rose-600 text-white'; }
+
+                        let localImgUrl = deal.hasImage && mediaCacheMap.has(`${deal.id}_img`) ? URL.createObjectURL(mediaCacheMap.get(`${deal.id}_img`)) : "";
+                        let localVidUrl = deal.hasVideo && mediaCacheMap.has(`${deal.id}_vid`) ? URL.createObjectURL(mediaCacheMap.get(`${deal.id}_vid`)) : "";
+
+                        const el = document.createElement('div');
+                        el.className = `p-4 rounded-xl border ${cardStyle} flex flex-col md:flex-row justify-between items-start gap-4`;
+                        el.innerHTML = `
+                            <div class="space-y-1 flex-1 w-full">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-sm text-slate-200">${deal.name}</span>
+                                    <button onclick="setExternalSearchQuery('${deal.name}')" class="text-xs text-blue-400"><i class="fas fa-history"></i></button>
+                                    <span class="text-xs px-2 py-0.5 rounded-full font-bold ${badgeStyle}">${deal.status}</span>
+                                    <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md font-semibold">${deal.type} : ${deal.size} ${deal.unit}</span>
+                                    <span class="text-xs bg-emerald-950 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-md font-bold"><i class="fas fa-map-marker-alt text-[10px]"></i> ${deal.sector}</span>
+                                </div>
+                                <p class="text-xs text-slate-400 font-mono"><i class="fas fa-phone text-emerald-500"></i> ${deal.phone}</p>
+                                <div class="grid grid-cols-3 gap-2 my-2 p-2 bg-slate-900/60 rounded-xl text-[11px] border border-slate-700/40">
+                                    <div><span class="text-slate-400 block">Total Price</span><strong class="text-slate-200 text-xs">Rs. ${deal.totalPrice.toLocaleString()}</strong></div>
+                                    <div><span class="text-purple-400 block">Biyana</span><strong class="text-purple-300 text-xs">Rs. ${deal.tokenPaid.toLocaleString()}</strong></div>
+                                    <div><span class="text-amber-400 block">Remaining</span><strong class="text-xs ${deal.remaining > 0 ? 'text-amber-400 font-bold' : 'text-emerald-400'}">Rs. ${deal.remaining.toLocaleString()}</strong></div>
+                                </div>
+                                <p class="text-sm text-slate-300 mt-2 bg-slate-900/40 p-2 rounded border border-slate-700/50">${deal.details}</p>
+                                ${(localImgUrl || localVidUrl) ? `
+                                    <div class="grid grid-cols-2 gap-2 mt-3 p-2 bg-slate-900/60 rounded-xl border border-slate-700/40">
+                                        ${localImgUrl ? `<img src="${localImgUrl}" class="rounded-lg max-h-40 w-full object-cover border border-slate-600" onclick="window.open('${localImgUrl}')">` : ''}
+                                        ${localVidUrl ? `<video src="${localVidUrl}" controls class="rounded-lg max-h-40 w-full object-cover border border-slate-600"></video>` : ''}
+                                    </div>
+                                ` : ''}
+                                <div class="flex flex-wrap gap-2 mt-2 pt-1 border-t border-slate-700/30 text-[11px]">
+                                    <span class="text-slate-400"><i class="fas fa-clock"></i> Entered: ${deal.enteredAt}</span>
+                                    ${deal.reminderDate ? `<span class="text-amber-400 font-semibold animate-pulse"><i class="fas fa-bell"></i> Alert: ${deal.reminderDate}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="flex flex-row md:flex-col items-end justify-between h-full w-full md:w-auto border-t md:border-t-0 border-slate-700/30 pt-2 md:pt-0 gap-4">
+                                <span class="text-[10px] text-slate-500 font-mono">Date: ${deal.timestamp}</span>
+                                <button onclick="deleteMasterRecord(${deal.id}, 'deal')" class="text-rose-400 hover:text-rose-600 text-sm p-1"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        `;
+                        container.appendChild(el);
+                    }
+                });
+                document.getElementById('count-total').innerText = total;
+                document.getElementById('count-done').innerText = done;
+                document.getElementById('count-pending').innerText = pending;
+            } else {
+                // STOCK INVENTORY RENDER STREAM
+                document.getElementById('lbl-card-1').innerText = "Total Stock Units";
+                document.getElementById('lbl-card-2').innerText = "For Sale Items";
+                document.getElementById('lbl-card-3').innerText = "For Rent Items";
+
+                let totalStk = 0, saleStk = 0, rentStk = 0;
+                stock.forEach(item => {
+                    totalStk++;
+                    if (item.purpose === 'For Sale') saleStk++;
+                    if (item.purpose === 'For Rent') rentStk++;
+
+                    if (item.title.toLowerCase().includes(searchVal) || item.sector.toLowerCase().includes(searchVal) || item.type.toLowerCase().includes(searchVal) || item.price.toString().includes(searchVal)) {
+                        const el = document.createElement('div');
+                        el.className = "p-4 rounded-xl border border-slate-700 bg-slate-900/40 flex flex-col md:flex-row justify-between items-start gap-4";
+                        el.innerHTML = `
+                            <div class="space-y-1 flex-1 w-full">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-sm text-blue-400">${item.title}</span>
+                                    <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700 font-semibold">${item.type} : ${item.size} ${item.unit}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full font-bold ${item.purpose === 'For Sale' ? 'bg-indigo-600' : 'bg-teal-600'} text-white">${item.purpose}</span>
+                                    <span class="text-xs bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded-md"><i class="fas fa-map-marker-alt text-[10px] text-blue-400"></i> ${item.sector}</span>
+                                </div>
+                                <div class="text-md font-bold text-slate-200 font-mono mt-1">Demand: <span class="text-emerald-400">Rs. ${item.price.toLocaleString()}</span></div>
+
+                                <div class="text-xs bg-slate-900/80 border border-slate-800 p-2 rounded-lg text-slate-400 space-y-0.5 max-w-sm font-sans">
+                                    <div><i class="fas fa-user-circle text-blue-400"></i> Owner/Source: <strong class="text-slate-300">${item.owner}</strong></div>
+                                    <div><i class="fas fa-phone-alt text-emerald-500"></i> Phone Contact: <strong class="text-slate-300 font-mono">${item.phone}</strong></div>
+                                </div>
+
+                                ${item.details ? `<p class="text-xs text-slate-300 mt-2 bg-slate-800/30 p-2 rounded border border-slate-700/40">${item.details}</p>` : ''}
+
+                                ${item.base64Img ? `
+                                    <div class="mt-2 max-w-xs border border-slate-700 rounded-lg overflow-hidden">
+                                        <img src="${item.base64Img}" class="max-h-36 w-full object-cover" onclick="window.open('${item.base64Img}')">
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="flex flex-row md:flex-col items-end justify-between h-full w-full md:w-auto border-t md:border-t-0 border-slate-700/30 pt-2 md:pt-0 gap-4">
+                                <span class="text-[10px] text-slate-500 font-mono">Added: ${item.timestamp}</span>
+                                <button onclick="deleteMasterRecord(${item.id}, 'stock')" class="text-rose-400 hover:text-rose-600 text-sm p-1"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        `;
+                        container.appendChild(el);
+                    }
+                });
+                document.getElementById('count-total').innerText = totalStk;
+                document.getElementById('count-done').innerText = saleStk;
+                document.getElementById('count-pending').innerText = rentStk;
+            }
+        }
+
+        // Industrial Multi-Scan Accurate Chronology Match Engine
+        function liveCheckReminders() {
+            const now = new Date();
+            deals.forEach(d => {
+                if (d.status !== 'Completed' && d.status !== 'Cancelled' && d.reminderRaw) {
+                    let targetDate = new Date(d.reminderRaw);
+                    if (!isNaN(targetDate.getTime()) && now >= targetDate) {
+                        let uniqueAlertKey = d.id.toString();
+                        if (!firedAlerts.includes(uniqueAlertKey)) {
+                            firedAlerts.push(uniqueAlertKey);
+                            syncDataVault();
+
+                            playCustomAlarm();
+                            setTimeout(() => {
+                                alert(`⏰ TARGET LEDGER ALERT TRIGGERED!\n\nCustomer: ${d.name}\nSector/Area: ${d.sector}\nPending Balance: Rs. ${d.remaining.toLocaleString()}\nDetails: ${d.details}`);
+                            }, 150);
+                        }
+                    }
+                }
+            });
+        }
+        setInterval(liveCheckReminders, 10000); // 10 Second Scanner
+
+        function exportData() {
+            const outBundle = { deals_ledger: deals, stock_inventory: stock };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(outBundle, null, 2));
+            const downloadAnchor = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0,10);
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Property_Master_Backup_${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const imported = JSON.parse(evt.target.result);
+                    if (imported.deals_ledger && imported.stock_inventory) {
+                        deals = imported.deals_ledger;
+                        stock = imported.stock_inventory;
+                    } else if (Array.isArray(imported)) {
+                        deals = imported; // Structural Backward compatibility
+                    }
+                    firedAlerts = [];
+                    syncDataVault();
+                    alert("Complete Database Restored Successfully!");
+                } catch(err) { alert("Invalid Backup Matrix Format."); }
+            };
+            reader.readAsText(file);
+        }
+
+        document.getElementById('btn-lang').addEventListener('click', () => {
+            currentLang = currentLang === 'en' ? 'ur' : 'en';
+            document.getElementById('btn-lang').innerText = currentLang === 'en' ? 'Urdu' : 'English';
+            document.querySelectorAll('.lang-en').forEach(el => currentLang === 'en' ? el.classList.remove('hidden') : el.classList.add('hidden'));
+            document.querySelectorAll('.lang-ur').forEach(el => currentLang === 'ur' ? el.classList.remove('hidden') : el.classList.add('hidden'));
+            document.body.dir = currentLang === 'ur' ? 'rtl' : 'ltr';
+            if (currentLang === 'ur') { document.body.classList.add('urdu-text'); } else { document.body.classList.remove('urdu-text'); }
+            switchMainTab(currentActiveTab);
+        });
+
+        document.getElementById('btn-theme').addEventListener('click', () => {
+            const html = document.documentElement;
+            const btn = document.getElementById('btn-theme');
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.setAttribute('data-theme', 'light');
+                btn.innerHTML = `<i class="fas fa-moon text-slate-800"></i>`;
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                btn.innerHTML = `<i class="fas fa-sun text-yellow-400"></i>`;
+            }
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('btn-install').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-install').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') { document.getElementById('btn-install').classList.add('hidden'); }
+                deferredPrompt = null;
+            }
+        });
+
+        renderMasterView();
+        toggleFormFields();
+    </script>
+</body>
+</html>
