@@ -31,6 +31,8 @@
 </head>
 <body>
 
+    <audio id="alarm-sound" src="ALARM ALERT.mp3" loop preload="auto"></audio>
+
     <header class="border-b border-slate-700/50 p-4 sticky top-0 backdrop-blur-md z-50 bg-opacity-80 bg-slate-900 data-[theme=light]:bg-white">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold tracking-wide text-emerald-500 flex items-center gap-2">
@@ -38,6 +40,9 @@
             </h1>
 
             <div class="flex items-center gap-3">
+                <button id="btn-permission" onclick="requestNotificationPermission()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold animate-bounce">
+                    <i class="fas fa-bell"></i> Enable Hard Alerts
+                </button>
                 <button id="btn-install" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5">
                     <i class="fas fa-download"></i> <span class="lang-en">Install</span><span class="lang-ur hidden">انسٹال</span>
                 </button>
@@ -46,6 +51,19 @@
             </div>
         </div>
     </header>
+
+    <div id="alarm-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-[999] flex items-center justify-center p-4">
+        <div class="bg-slate-800 border-2 border-amber-500 rounded-2xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto text-2xl animate-bounce">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h2 class="text-xl font-bold text-amber-400">⏰ TARGET ALERT ACTIVE!</h2>
+            <div id="alarm-modal-body" class="text-sm text-slate-300 space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-left font-mono"></div>
+            <button onclick="stopActiveAlarm()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl tracking-wide text-md transition-all shadow-lg">
+                <i class="fas fa-check-circle"></i> OK / STOP ALARM
+            </button>
+        </div>
+    </div>
 
     <section class="max-w-6xl mx-auto px-4 pt-6">
         <div class="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700 max-w-md">
@@ -149,11 +167,13 @@
                                 <input type="number" id="token-paid" value="0" min="0" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm outline-none focus:border-emerald-500">
                             </div>
                         </div>
+
                         <div id="reminder-container" class="space-y-2 bg-amber-950/20 p-3 rounded-xl border border-amber-500/30">
-                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-en">⏰ Set Target Chrono Alert</label>
-                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-ur hidden">⏰ الرٹ کا وقت سیٹ کریں</label>
+                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-en">⏰ Set Target Alert (Leave blank if not needed)</label>
+                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-ur hidden">⏰ الرٹ کا وقت (ضرورت نہ ہونے پر خالی چھوڑ دیں)</label>
                             <input type="datetime-local" id="reminder-date" class="w-full bg-slate-900 border border-amber-600/70 rounded-lg p-2 text-sm outline-none text-amber-300">
                         </div>
+
                         <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700 space-y-2">
                             <span class="block text-[11px] font-bold text-emerald-400"><i class="fas fa-paperclip"></i> Media Attachment Linker</span>
                             <div class="grid grid-cols-2 gap-2">
@@ -278,35 +298,38 @@
     </main>
 
     <script>
-        // Dual Channel LocalStorage Arrays
         let deals = JSON.parse(localStorage.getItem('property_ledger_data')) || [];
         let stock = JSON.parse(localStorage.getItem('property_inventory_data')) || [];
         let firedAlerts = JSON.parse(localStorage.getItem('property_ledger_fired')) || [];
 
-        let currentActiveTab = 'deals'; // Active state configuration selector
+        let currentActiveTab = 'deals';
         let currentLang = 'en';
         let deferredPrompt;
-        let mediaCacheMap = new Map(); // Core runtime RAM linker cache
+        let mediaCacheMap = new Map();
 
-        const alertAudio = new Audio('./ALARM ALERT.mp3');
-        alertAudio.loop = false;
+        const alarmSound = document.getElementById('alarm-sound');
 
-        function unlockAudioEngine() {
-            alertAudio.play().then(() => {
-                alertAudio.pause();
-                alertAudio.currentTime = 0;
-                document.removeEventListener('click', unlockAudioEngine);
-                document.removeEventListener('touchstart', unlockAudioEngine);
-            }).catch(e => console.log("Audio pipeline priming skipped."));
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('Advanced Secure Trigger SW Active!');
+                });
+            });
+
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data && event.data.action === 'triggerAlarmUI') {
+                    let deal = deals.find(d => d.id == event.data.dealId);
+                    if (deal) triggerSystemAlarmUI(deal);
+                }
+            });
         }
-        document.addEventListener('click', unlockAudioEngine);
-        document.addEventListener('touchstart', unlockAudioEngine);
 
-        function playCustomAlarm() {
-            try {
-                alertAudio.currentTime = 0;
-                alertAudio.play().catch(e => console.error("Playback restriction matrix triggered:", e));
-            } catch(err) { console.warn("Audio driver pipeline fatal error:", err); }
+        function requestNotificationPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    document.getElementById('btn-permission').classList.add('hidden');
+                }
+            });
         }
 
         function syncDataVault() {
@@ -389,13 +412,33 @@
                 timestamp: new Date().toLocaleDateString('en-GB')
             };
 
+            // Secure Hardware OS Trigger Injection Engine (Executes if App is Killed)
+            if (customAlertRaw && Notification.permission === "granted" && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    let targetTimestamp = new Date(customAlertRaw).getTime();
+
+                    let notificationOptions = {
+                        body: `Client: ${deal.name} | Sector: ${deal.sector}\nDetails: ${deal.details}`,
+                        data: { dealId: deal.id },
+                        tag: String(deal.id),
+                        requireInteraction: true
+                    };
+
+                    // OS Level Native Scheduler Handler
+                    if ('showTrigger' in Notification.prototype) {
+                        notificationOptions.showTrigger = new TimestampTrigger(targetTimestamp);
+                    }
+
+                    registration.showNotification("🚨 PROPERTY TARGET ALERT!", notificationOptions);
+                });
+            }
+
             deals.unshift(deal);
             syncDataVault();
             document.getElementById('deal-form').reset();
             toggleFormFields();
         }
 
-        // Production Inventory Matrix Engine Loader
         function saveStockItem(e) {
             e.preventDefault();
             const stockId = Date.now();
@@ -417,7 +460,6 @@
                 base64Img: ""
             };
 
-            // Permanent File System Processing Layer via Base64 Converter
             if (imgField) {
                 const reader = new FileReader();
                 reader.onloadend = function() {
@@ -467,7 +509,6 @@
             const searchVal = document.getElementById('search-box').value.toLowerCase();
             container.innerHTML = '';
 
-            // Layout Labels Sync Array
             if (currentActiveTab === 'deals') {
                 document.getElementById('lbl-card-1').innerText = "Total Client Ledgers";
                 document.getElementById('lbl-card-2').innerText = "Completed Closed";
@@ -531,7 +572,6 @@
                 document.getElementById('count-done').innerText = done;
                 document.getElementById('count-pending').innerText = pending;
             } else {
-                // STOCK INVENTORY RENDER STREAM
                 document.getElementById('lbl-card-1').innerText = "Total Stock Units";
                 document.getElementById('lbl-card-2').innerText = "For Sale Items";
                 document.getElementById('lbl-card-3').innerText = "For Rent Items";
@@ -554,14 +594,11 @@
                                     <span class="text-xs bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded-md"><i class="fas fa-map-marker-alt text-[10px] text-blue-400"></i> ${item.sector}</span>
                                 </div>
                                 <div class="text-md font-bold text-slate-200 font-mono mt-1">Demand: <span class="text-emerald-400">Rs. ${item.price.toLocaleString()}</span></div>
-
                                 <div class="text-xs bg-slate-900/80 border border-slate-800 p-2 rounded-lg text-slate-400 space-y-0.5 max-w-sm font-sans">
                                     <div><i class="fas fa-user-circle text-blue-400"></i> Owner/Source: <strong class="text-slate-300">${item.owner}</strong></div>
                                     <div><i class="fas fa-phone-alt text-emerald-500"></i> Phone Contact: <strong class="text-slate-300 font-mono">${item.phone}</strong></div>
                                 </div>
-
                                 ${item.details ? `<p class="text-xs text-slate-300 mt-2 bg-slate-800/30 p-2 rounded border border-slate-700/40">${item.details}</p>` : ''}
-
                                 ${item.base64Img ? `
                                     <div class="mt-2 max-w-xs border border-slate-700 rounded-lg overflow-hidden">
                                         <img src="${item.base64Img}" class="max-h-36 w-full object-cover" onclick="window.open('${item.base64Img}')">
@@ -582,7 +619,7 @@
             }
         }
 
-        // Industrial Multi-Scan Accurate Chronology Match Engine
+        // Active Foreground Fallback Matrix Scan Loop
         function liveCheckReminders() {
             const now = new Date();
             deals.forEach(d => {
@@ -593,17 +630,33 @@
                         if (!firedAlerts.includes(uniqueAlertKey)) {
                             firedAlerts.push(uniqueAlertKey);
                             syncDataVault();
-
-                            playCustomAlarm();
-                            setTimeout(() => {
-                                alert(`⏰ TARGET LEDGER ALERT TRIGGERED!\n\nCustomer: ${d.name}\nSector/Area: ${d.sector}\nPending Balance: Rs. ${d.remaining.toLocaleString()}\nDetails: ${d.details}`);
-                            }, 150);
+                            triggerSystemAlarmUI(d);
                         }
                     }
                 }
             });
         }
-        setInterval(liveCheckReminders, 10000); // 10 Second Scanner
+        setInterval(liveCheckReminders, 5000);
+
+        function triggerSystemAlarmUI(deal) {
+            const body = document.getElementById('alarm-modal-body');
+            body.innerHTML = `
+                <div><strong>Client:</strong> ${deal.name}</div>
+                <div><strong>Sector:</strong> ${deal.sector}</div>
+                <div><strong>Phone:</strong> ${deal.phone}</div>
+                <div><strong>Details:</strong> ${deal.details}</div>
+            `;
+            document.getElementById('alarm-modal').classList.remove('hidden');
+
+            alarmSound.currentTime = 0;
+            alarmSound.play().catch(e => console.log("Autoplay waiting for user interaction layer click."));
+        }
+
+        function stopActiveAlarm() {
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+            document.getElementById('alarm-modal').classList.add('hidden');
+        }
 
         function exportData() {
             const outBundle = { deals_ledger: deals, stock_inventory: stock };
@@ -628,7 +681,7 @@
                         deals = imported.deals_ledger;
                         stock = imported.stock_inventory;
                     } else if (Array.isArray(imported)) {
-                        deals = imported; // Structural Backward compatibility
+                        deals = imported;
                     }
                     firedAlerts = [];
                     syncDataVault();
@@ -660,12 +713,6 @@
             }
         });
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
-            });
-        }
-
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -681,6 +728,7 @@
             }
         });
 
+        if (Notification.permission === 'granted') document.getElementById('btn-permission').classList.add('hidden');
         renderMasterView();
         toggleFormFields();
     </script>
