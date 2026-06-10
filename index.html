@@ -167,13 +167,11 @@
                                 <input type="number" id="token-paid" value="0" min="0" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm outline-none focus:border-emerald-500">
                             </div>
                         </div>
-
                         <div id="reminder-container" class="space-y-2 bg-amber-950/20 p-3 rounded-xl border border-amber-500/30">
-                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-en">⏰ Set Target Alert (Leave blank if not needed)</label>
-                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-ur hidden">⏰ الرٹ کا وقت (ضرورت نہ ہونے پر خالی چھوڑ دیں)</label>
+                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-en">⏰ Set Target Chrono Alert</label>
+                            <label class="block text-xs font-semibold text-amber-400 mb-1 lang-ur hidden">⏰ الرٹ کا وقت سیٹ کریں</label>
                             <input type="datetime-local" id="reminder-date" class="w-full bg-slate-900 border border-amber-600/70 rounded-lg p-2 text-sm outline-none text-amber-300">
                         </div>
-
                         <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700 space-y-2">
                             <span class="block text-[11px] font-bold text-emerald-400"><i class="fas fa-paperclip"></i> Media Attachment Linker</span>
                             <div class="grid grid-cols-2 gap-2">
@@ -307,15 +305,17 @@
         let deferredPrompt;
         let mediaCacheMap = new Map();
 
+        // Sound Driver Binding
         const alarmSound = document.getElementById('alarm-sound');
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(reg => {
-                    console.log('Advanced Secure Trigger SW Active!');
-                });
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('Service Worker Registrations Enabled!');
+                }).catch(err => console.error(err));
             });
 
+            // Cross-channel listening from service worker when background app wakes up
             navigator.serviceWorker.addEventListener('message', event => {
                 if (event.data && event.data.action === 'triggerAlarmUI') {
                     let deal = deals.find(d => d.id == event.data.dealId);
@@ -412,24 +412,23 @@
                 timestamp: new Date().toLocaleDateString('en-GB')
             };
 
-            // Secure Hardware OS Trigger Injection Engine (Executes if App is Killed)
+            // OS Level Local Notification Dispatch Engine
             if (customAlertRaw && Notification.permission === "granted" && 'serviceWorker' in navigator) {
                 navigator.serviceWorker.ready.then(registration => {
-                    let targetTimestamp = new Date(customAlertRaw).getTime();
+                    let targetTime = new Date(customAlertRaw).getTime();
+                    let delay = targetTime - Date.now();
 
-                    let notificationOptions = {
-                        body: `Client: ${deal.name} | Sector: ${deal.sector}\nDetails: ${deal.details}`,
-                        data: { dealId: deal.id },
-                        tag: String(deal.id),
-                        requireInteraction: true
-                    };
-
-                    // OS Level Native Scheduler Handler
-                    if ('showTrigger' in Notification.prototype) {
-                        notificationOptions.showTrigger = new TimestampTrigger(targetTimestamp);
+                    if(delay > 0) {
+                        setTimeout(() => {
+                            registration.showNotification("🚨 PROPERTY TARGET ALERT!", {
+                                body: `Client: ${deal.name} | Sector: ${deal.sector}\nDetails: ${deal.details}`,
+                                data: { dealId: deal.id },
+                                tag: String(deal.id),
+                                requireInteraction: true,
+                                vibrate: [200, 100, 200, 100, 400]
+                            });
+                        }, delay);
                     }
-
-                    registration.showNotification("🚨 PROPERTY TARGET ALERT!", notificationOptions);
                 });
             }
 
@@ -619,7 +618,7 @@
             }
         }
 
-        // Active Foreground Fallback Matrix Scan Loop
+        // Active High Priority UI Trigger Engine (Never drops execution thread)
         function liveCheckReminders() {
             const now = new Date();
             deals.forEach(d => {
@@ -636,7 +635,7 @@
                 }
             });
         }
-        setInterval(liveCheckReminders, 5000);
+        setInterval(liveCheckReminders, 5000); // Super Fast 5 Sec Scanner
 
         function triggerSystemAlarmUI(deal) {
             const body = document.getElementById('alarm-modal-body');
@@ -648,10 +647,12 @@
             `;
             document.getElementById('alarm-modal').classList.remove('hidden');
 
+            // Loop audio player deployment
             alarmSound.currentTime = 0;
-            alarmSound.play().catch(e => console.log("Autoplay waiting for user interaction layer click."));
+            alarmSound.play().catch(e => console.log("Autoplay context waiting for hardware bypass click."));
         }
 
+        // Stop Alarm Functionality
         function stopActiveAlarm() {
             alarmSound.pause();
             alarmSound.currentTime = 0;

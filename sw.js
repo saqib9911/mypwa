@@ -5,7 +5,7 @@ self.addEventListener('notificationclick', function(event) {
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-            // Check if application tab is active in the background context
+            // Check if application window/tab is already open in background
             for (let i = 0; i < clientList.length; i++) {
                 let client = clientList[i];
                 if (client.url && 'focus' in client) {
@@ -16,14 +16,14 @@ self.addEventListener('notificationclick', function(event) {
                     });
                 }
             }
-            // If the App process is completely killed, deploy a fresh frame window
+            // If the App process is completely killed by mobile OS, deploy a fresh frame window
             if (clients.openWindow) {
                 return clients.openWindow('./').then(windowClient => {
                     setTimeout(() => {
                         if (dealId && windowClient) {
                             windowClient.postMessage({ action: 'triggerAlarmUI', dealId: dealId });
                         }
-                    }, 2500); // 2.5 Sec buffer delay to complete DOM tree boot
+                    }, 2500); // 2.5 Sec delay layer to let DOM complete compilation
                 });
             }
         })
